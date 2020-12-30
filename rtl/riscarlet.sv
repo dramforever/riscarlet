@@ -1,11 +1,11 @@
 module riscarlet (
-    rst, clk,
+    clk, rst,
     a, b
 );
     import  types::*;
 
-    input wire  logic       rst;
     input wire  logic       clk;
+    input wire  logic       rst;
 
     input wire  word_t      a;
     output      word_t      b;
