@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
                         "[%9d]   signed [%8s] %d * %d = %d (correct is %d)\n",
                         dut.counter(),
                         (int64_t(dut->o) == correct ? "OK" : "NOT OK"),
-                        dut->a, dut->b, int64_t(dut->o), correct
+                        int32_t(dut->a), int32_t(dut->b), int64_t(dut->o), correct
                     );
                 } else {
                     uint64_t correct = uint64_t(dut->a) * uint64_t(dut->b);
