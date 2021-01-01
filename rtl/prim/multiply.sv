@@ -1,26 +1,23 @@
+`default_nettype none
+`timescale 1ns/1ps
+
 module multiply #(
-    parameter integer A_W = 32,
-    parameter integer B_W = 32,
-    parameter integer O_W = A_W + B_W
+    parameter integer   A_W     = 32,
+    parameter integer   B_W     = 32,
+    parameter integer   O_W     = A_W + B_W,
+    localparam integer  CTR_W   = $clog2(B_W)
 ) (
-    clk, rst,
-    a, b, is_signed, o,
+    input wire  logic                   clk,
+    input wire  logic                   rst,
 
-    // Control signals
-    stb, ack
+    input wire  logic [A_W - 1 : 0]     a,
+    input wire  logic [B_W - 1 : 0]     b,
+    input wire  logic                   is_signed,
+    output      logic [O_W - 1 : 0]     o,
+
+    input wire  logic                   stb,
+    output      logic                   ack
 );
-
-    input wire  logic                   clk;
-    input wire  logic                   rst;
-
-    input wire  logic [A_W - 1 : 0]     a;
-    input wire  logic [B_W - 1 : 0]     b;
-    input wire  logic                   is_signed;
-    output      logic [O_W - 1 : 0]     o;
-
-    input wire  logic                   stb;
-    output      logic                   ack;
-
 
     logic [B_W - 1 : 0]     b_plus;
     logic [B_W - 1 : 0]     b_minus;
@@ -35,8 +32,6 @@ module multiply #(
         end
     end
 
-    localparam CTR_W        = $clog2(B_W);
-
     logic                   running;
     logic [CTR_W - 1 : 0]   counter;
     logic [A_W - 1 : 0]     a_saved;
@@ -49,7 +44,7 @@ module multiply #(
         a_saved
     };
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (rst) begin
             running <= '0;
             ack <= '0;

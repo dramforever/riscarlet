@@ -1,16 +1,14 @@
-module riscarlet (
-    clk, rst,
-    a, b
-);
+module riscarlet
     import  types::*;
+(
+    input wire  logic       clk,
+    input wire  logic       rst,
 
-    input wire  logic       clk;
-    input wire  logic       rst;
+    input wire  word_t      a,
+    output      word_t      b
+);
 
-    input wire  word_t      a;
-    output      word_t      b;
-
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if (rst) begin
             b <= 'd0;
         end else begin
