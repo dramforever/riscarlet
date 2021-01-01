@@ -11,6 +11,7 @@
         nativeBuildInputs = [
           cmake ninja
           verilator
+          svls
         ];
 
         buildInputs = [
