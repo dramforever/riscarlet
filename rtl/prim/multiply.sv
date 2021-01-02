@@ -23,7 +23,7 @@ module multiply #(
         if (rst) begin
             delay <= '0;
         end else begin
-            delay <= { delay[B_W - 1 : 0], stb };
+            delay <= { delay[B_W - 1 : 0], stb && ! running };
         end
     end
 
