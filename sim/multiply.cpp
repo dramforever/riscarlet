@@ -113,8 +113,15 @@ int main(int argc, char *argv[]) {
 
     std::uniform_int_distribution<int> bdist(0, 1);
 
+    std::uniform_int_distribution<size_t> wait_dist(0, 3);
 
     for (size_t T = 0; T < 20; T ++) {
+        size_t wait_ticks = wait_dist(rng);
+
+        for (size_t i = 0; i < wait_ticks; i ++) {
+            dut.tick();
+        }
+
         dut->is_signed = bdist(rng);
         dut->stb = 1;
 
@@ -128,27 +135,32 @@ int main(int argc, char *argv[]) {
             dut->b = b;
         }
 
+        uint32_t orig_a = dut->a;
+        uint32_t orig_b = dut->b;
+
         while (true) {
             dut.tick();
             dut->stb = 0;
+            dut->a = 0;
+            dut->b = 0;
             if (dut->ack) {
                 if (dut->is_signed) {
-                    int64_t correct = int64_t(int32_t(dut->a)) * int64_t(int32_t(dut->b));
+                    int64_t correct = int64_t(int32_t(orig_a)) * int64_t(int32_t(orig_b));
 
                     std::cout << absl::StreamFormat(
                         "[%9d]   signed [%8s] %d * %d = %d (correct is %d)\n",
                         dut.counter(),
                         (int64_t(dut->o) == correct ? "OK" : "NOT OK"),
-                        int32_t(dut->a), int32_t(dut->b), int64_t(dut->o), correct
+                        int32_t(orig_a), int32_t(orig_b), int64_t(dut->o), correct
                     );
                 } else {
-                    uint64_t correct = uint64_t(dut->a) * uint64_t(dut->b);
+                    uint64_t correct = uint64_t(orig_a) * uint64_t(orig_b);
 
                     std::cout << absl::StreamFormat(
                         "[%9d] unsigned [%8s] %d * %d = %d (correct is %d)\n",
                         dut.counter(),
                         (uint64_t(dut->o) == correct ? "OK" : "NOT OK"),
-                        dut->a, dut->b, uint64_t(dut->o), correct
+                        orig_a, orig_b, uint64_t(dut->o), correct
                     );
                 }
                 break;
