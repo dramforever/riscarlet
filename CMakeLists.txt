@@ -20,7 +20,7 @@ add_executable(Vmultiply sim/multiply.cpp)
 verilate(Vmultiply
     TOP_MODULE multiply
     PREFIX Vmultiply
-    SOURCES rtl/prim/multiply.sv
+    SOURCES rtl/prim/multiply.sv rtl/prim/multiply_signed.sv
     TRACE_FST
     VERILATOR_ARGS --trace-params --trace-structs -Wall -O3)
 

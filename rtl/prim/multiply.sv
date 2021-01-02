@@ -2,9 +2,9 @@
 `timescale 1ns/1ps
 
 module multiply #(
-    parameter integer   A_W     = 32,
-    parameter integer   B_W     = 32,
-    parameter integer   O_W     = A_W + B_W
+    parameter   integer     A_W     = 32,
+    parameter   integer     B_W     = 32,
+    localparam  integer     O_W     = A_W + B_W
 ) (
     input wire  logic                   clk,
     input wire  logic                   rst,
@@ -17,77 +17,30 @@ module multiply #(
     input wire  logic                   stb,
     output      logic                   ack
 );
-    logic [(B_W + 1) - 1 : 0]         delay;
 
-    always_ff @(posedge clk) begin
-        if (rst) begin
-            delay <= '0;
-        end else begin
-            delay <= { delay[B_W - 1 : 0], stb && ! running };
-        end
-    end
+    logic [A_W : 0]         a_ext;
+    logic [A_W : 0]         b_ext;
 
-    always_ff @(posedge clk) begin
-        if (rst) begin
-            ack <= '0;
-        end else begin
-            ack <= delay[B_W];
-        end
-    end
+    assign a_ext    = { a[A_W - 1] & is_signed, a };
+    assign b_ext    = { b[B_W - 1] & is_signed, b };
 
-    logic running;
+    logic [O_W + 1 : 0]     result;
 
-    always_ff @(posedge clk) begin
-        if (rst) begin
-            running <= '0;
-        end else begin
-            if (running) begin
-                running <= ~ delay[B_W];
-            end else if (stb) begin
-                running <= '1;
-            end
-        end
-    end
+    multiply_signed #(
+        .A_W(A_W + 1),
+        .B_W(B_W + 1)
+    ) multiply_signed_i (
+        .clk, .rst,
+        .a(a_ext), .b(b_ext),
+        .o(result),
+        .stb, .ack
+    );
 
-    logic [A_W - 1 : 0]         a_saved;
-    logic                       is_signed_saved;
+    assign o = O_W'(result);
 
-    always_ff @(posedge clk) begin
-        if (stb && ! running) begin
-            a_saved <= a;
-            is_signed_saved <= is_signed;
-        end
-    end
+    // Unused bits
 
-    logic [(A_W + 1) - 1 : 0]   a_ext;
-
-    assign a_ext = { is_signed_saved & a_saved[A_W - 1], a_saved };
-
-    logic [(O_W + 3) - 1 : 0]   result;
-    logic [(O_W + 3) - 1 : 0]   result_next;
-
-    always_comb begin
-        result_next = result;
-
-        unique case (result[1:0])
-            2'b01:      result_next[(O_W + 3) - 1 -: A_W + 1] += a_ext;
-            2'b10:      result_next[(O_W + 3) - 1 -: A_W + 1] -= a_ext;
-            default:;   // Nothing
-        endcase
-
-        result_next = {
-            result_next[(O_W + 3) - 1],
-            result_next[(O_W + 3) - 1 : 1]
-        };
-    end
-
-    always_ff @(posedge clk) begin
-        if (running) begin
-            result <= result_next;
-        end else if (stb) begin
-            result <= { 1'b0, A_W'('0), is_signed & b[B_W - 1], b, 1'b0 };
-        end
-    end
-
-    assign o = result[O_W : 1];
+    /* verilator lint_off UNUSED */
+    logic _unused = 1'(result[(A_W + B_W) +: 2]);
+    /* verilator lint_on UNUSED */
 endmodule
