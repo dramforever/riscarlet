@@ -1,6 +1,3 @@
-`default_nettype none
-`timescale 1ns/1ps
-
 module multiply #(
     parameter   integer     A_W     = 32,
     parameter   integer     B_W     = 32,
@@ -38,9 +35,6 @@ module multiply #(
 
     assign o = O_W'(result);
 
-    // Unused bits
-
-    /* verilator lint_off UNUSED */
+    // Unused bits, make Verilator happy
     logic _unused = 1'(result[(A_W + B_W) +: 2]);
-    /* verilator lint_on UNUSED */
 endmodule

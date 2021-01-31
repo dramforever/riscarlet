@@ -1,6 +1,3 @@
-`default_nettype none
-`timescale 1ns/1ps
-
 module multiply_signed #(
     parameter   integer     A_W     = 32,
     parameter   integer     B_W     = 32,
