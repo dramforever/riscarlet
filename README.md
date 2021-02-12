@@ -4,6 +4,18 @@
 
 Maybe one day I will be able to build a 'full' RISC-V core...
 
+## Goals
+
+- Most of RV32I
+    - Naturally aligned memory access only
+    - No `fence`
+    - No `ecall` and `ebreak`
+- Pipelined
+- Operand forwarding
+- Simple branch prediction
+    - Build static not-taken first
+- Pipelined memory access
+
 ## Disclaimer
 
 For the student finding this:

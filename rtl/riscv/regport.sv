@@ -1,4 +1,4 @@
-interface regport
+interface regport;
     import  types::*;
 
     rnum_t      num;
@@ -6,7 +6,7 @@ interface regport
     word_t      value;
 
     modport up (
-        input   num
+        input   num,
         output  ready, value
     );
 

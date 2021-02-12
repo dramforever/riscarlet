@@ -3,6 +3,7 @@
 #include <random>
 #include <iostream>
 #include <chrono>
+#include <deque>
 
 #include "absl/strings/str_format.h"
 
@@ -74,6 +75,7 @@ public:
         module->rst = 1;
         tick();
         module->rst = 0;
+        tick();
     }
 
     virtual ~DUT() {
@@ -100,13 +102,51 @@ int main(int argc, char *argv[]) {
 
     std::random_device rd;
     std::mt19937 rng(rd());
-    std::uniform_int_distribution<uint32_t> dist(4, 10);
+    std::uniform_int_distribution<unsigned> bool_dist(0, 1);
+    std::uniform_int_distribution<unsigned> num_dist(0, 1<<20);
+    std::uniform_int_distribution<unsigned> ready_dist(0, 20);
 
-    for (size_t i = 0; i < 10; i ++) {
-        uint32_t num = dist(rng);
-        std::cout << absl::StreamFormat("a = %d\n", num);
-        dut->a = num;
+    std::deque<IData> reqs;
+
+    for (size_t i = 0; i < 100; i ++) {
+        dut->ready = ready_dist(rng) < 5;
+        dut->stall = bool_dist(rng);
+
+        if (ready_dist(rng) < 1) {
+            dut->pc_flush = 1;
+            dut->ready = 1;
+            dut->pc_new = num_dist(rng);
+            std::cout << absl::StreamFormat("[%9d] !! Flush! %08x\n", dut.counter(), dut->pc_new);
+        } else {
+            dut->pc_flush = 0;
+        }
+
+        dut->eval();
+
+        if (dut->ready && dut->valid) {
+            if (dut->pc_flush)
+                std::cout << absl::StreamFormat("[%9d] == Flush discard  %08x\n", dut.counter(), dut->instr);
+            else
+                std::cout << absl::StreamFormat("[%9d] == Fetch accepted %08x\n", dut.counter(), dut->instr);
+        }
+
+        if (dut->stb && ! dut->stall) {
+            std::cout << absl::StreamFormat("[%9d] -> Req adr = %08x\n", dut.counter(), dut->adr);
+            reqs.push_back(dut->adr);
+        }
+
+        if (! reqs.empty() && bool_dist(rng)) {
+            dut->ack = 1;
+            dut->dat_r = num_dist(rng);
+            std::cout << absl::StreamFormat("[%9d] <- Ack dat_r = %08x (adr %08x)\n", dut.counter(), dut->dat_r, reqs.front());
+            reqs.pop_front();
+        } else {
+            dut->ack = 0;
+            dut->dat_r = 0;
+        }
+
+        // std::cout << absl::StreamFormat("[%9d]    outstanding = %d\n", dut.counter(), outstanding);
+
         dut.tick();
-        std::cout << absl::StreamFormat("b = %d\n", dut -> b);
     }
 }

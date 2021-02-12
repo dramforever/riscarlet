@@ -12,7 +12,7 @@
         name = "riscarlet-dev";
 
         nativeBuildInputs = [
-          cmake ninja verilator svls sv2v
+          cmake ninja verilator svls sv2v yosys
         ];
 
         buildInputs = [

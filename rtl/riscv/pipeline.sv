@@ -3,7 +3,10 @@ interface pipeline;
 
     logic       valid;
     logic       ready;
+
+    /* verilator lint_off UNUSED */
     control_t   data;
+    /* verilator lint_on UNUSED */
 
     modport up (
         input   ready,

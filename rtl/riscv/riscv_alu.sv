@@ -19,7 +19,7 @@ module riscv_alu
     localparam funct3_t ALU_AND         = 3'b111;
 
     always_comb begin
-        unique case (alu_imm ? '0 : funct7)
+        unique case (is_imm ? '0 : funct7)
             7'b000_0000:
                 unique case (funct3)
                     ALU_ADD_SUB:    o = a + b;
@@ -30,17 +30,17 @@ module riscv_alu
                     ALU_SRL_SRA:    o = a >> b[4:0];
                     ALU_OR:         o = a | b;
                     ALU_AND:        o = a & b;
-                    default:        o = 'x;
+                    default:        o = '0;
                 endcase
             7'b010_0000:
                 unique case (funct3)
                     ALU_ADD_SUB:    o = a - b;
                     ALU_XOR_XNOR:   o = a ^ (~ b);
                     ALU_SRL_SRA:    o = $signed(a) >>> b[4:0];
-                    default:        o = 'x;
+                    default:        o = '0;
                 endcase
             default: begin
-                o = 'x;
+                o = '0;
             end
         endcase
     end
