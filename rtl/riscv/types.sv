@@ -44,4 +44,48 @@ package types;
             imm_j:      {{12{in[31]}}, in[12 +: 8], in[20], in[21 +: 10], 1'b0}
         };
     endfunction
+
+    typedef struct packed {
+        instr_t     instr;
+        word_t      npc;
+
+        rnum_t      rs1_num;
+        rnum_t      rs2_num;
+        rnum_t      rd_num;
+
+        logic       need_rs1;
+        logic       need_rs2;
+
+        word_t      op1;
+        word_t      op2;
+
+        logic       is_utype;       // EX = pcnow + imm; R[rd] = auipc ? EX : imm
+        logic       is_jal;         // EX = pcnow + imm; R[rd] = pcnow, pc = EX
+        logic       is_jalr;        // EX = rs1 + imm; R[rd] = pcnow, pc = EX
+        logic       is_branch;      // taken = bc(rs1, rs2); pc = pcnow + (taken ? imm : 4)
+        logic       is_op;          // EX = alu(rs1, rs2/imm); R[rd] = EX
+        logic       is_load;        // EX = rs1 + imm; addr = EX; R[rd] = MEM
+        logic       is_store;       // EX = rs1 + imm; addr = EX, MEM = rs2
+
+        // Byte enable bits.
+        // 4'b1111: w
+        // 4'b0011: h
+        // 4'b0001: b
+        bsel_t      bsel;
+
+        // Sign extend load
+        logic       load_signed;
+
+        // ALU second operand is immediate
+        logic       alu_imm;
+
+        // Writes to rd
+        logic       write_rd;
+
+        // Predicted branch target
+        word_t      predicted;
+
+        // Stage result
+        word_t      result;
+    } control_t;
 endpackage

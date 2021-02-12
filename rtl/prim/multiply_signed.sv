@@ -3,15 +3,15 @@ module multiply_signed #(
     parameter   integer     B_W     = 32,
     localparam  integer     O_W     = A_W + B_W
 ) (
-    input wire  logic                   clk,
-    input wire  logic                   rst,
+    input   logic                   clk,
+    input   logic                   rst,
 
-    input wire  logic [A_W - 1 : 0]     a,
-    input wire  logic [B_W - 1 : 0]     b,
-    output      logic [O_W - 1 : 0]     o,
+    input   logic [A_W - 1 : 0]     a,
+    input   logic [B_W - 1 : 0]     b,
+    output  logic [O_W - 1 : 0]     o,
 
-    input wire  logic                   stb,
-    output      logic                   ack
+    input   logic                   stb,
+    output  logic                   ack
 );
     logic [B_W - 1 : 0]         delay;
 

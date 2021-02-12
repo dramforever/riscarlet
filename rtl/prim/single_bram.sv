@@ -9,13 +9,13 @@ module single_bram #(
     parameter integer   DATA_L  = 4,
     localparam integer  DATA_W  = DATA_L * 8
 ) (
-    input wire  logic                   clk,
+    input   logic                   clk,
 
-    input wire  logic [ADDR_W - 1 : 0]  addr,
-    input wire  logic [DATA_W - 1 : 0]  data_w,
-    output      logic [DATA_W - 1 : 0]  data_r,
-    input wire  logic                   en,
-    input wire  logic [DATA_L - 1 : 0]  sel
+    input   logic [ADDR_W - 1 : 0]  addr,
+    input   logic [DATA_W - 1 : 0]  data_w,
+    output  logic [DATA_W - 1 : 0]  data_r,
+    input   logic                   en,
+    input   logic [DATA_L - 1 : 0]  sel
 );
 
     (* ram_style = "block" *)

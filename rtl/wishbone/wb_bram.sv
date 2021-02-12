@@ -2,46 +2,41 @@
 //
 // Requires a block RAM with enable (bram_en) and byte write enable (bram_sel)
 // signals. See single_bram for an example.
+//
+// Use *word address* for bram_addr port and *word address* width for
+// BRAM_ADDR_W.
 
 module wb_bram #(
-    parameter integer   ADDR_W  = 32,
-    parameter integer   DATA_L  = 4,
-    localparam integer  DATA_W  = DATA_L * 8
-) (
-    input wire  logic                   clk,
-    input wire  logic                   rst,
+    parameter   integer     BRAM_ADDR_W = 14;
+)
+    import types::*;
+(
+    input   logic       clk,
+    input   logic       rst,
 
     // Block RAM
-    output      logic [ADDR_W - 1 : 0]  bram_addr,
-    output      logic [DATA_W - 1 : 0]  bram_data_w,
-    input       logic [DATA_W - 1 : 0]  bram_data_r,
-    output      logic                   bram_en,
-    output      logic [DATA_L - 1 : 0]  bram_sel,
+    output  logic [BRAM_ADDR_W - 1 : 0] bram_addr,
+    output  word_t      bram_data_w,
+    input   word_t      bram_data_r,
+    output  logic       bram_en,
+    output  bsel_t      bram_sel,
 
-    // Wishbone slave
-    input wire  logic                   wb_stb,
-    output      logic                   wb_stall,
-    output      logic                   wb_ack,
-    input wire  logic [ADDR_W - 1 : 0]  wb_adr,
-    input wire  logic [DATA_W - 1 : 0]  wb_dat_w,
-    output      logic [DATA_W - 1 : 0]  wb_dat_r,
-    input wire  logic                   wb_we,
-    input wire  logic [DATA_L - 1 : 0]  wb_sel
+    wishbone.slave          wb;
 );
 
-    assign bram_addr = wb_adr;
-    assign bram_data_w = wb_dat_w;
-    assign bram_en = wb_stb;
-    assign bram_sel = (wb_stb && wb_we) ? wb_sel : '0;
+    assign bram_addr = wb.adr[$bits() - 1 : 2];
+    assign bram_data_w = wb.dat_w;
+    assign bram_en = wb.stb;
+    assign bram_sel = (wb.stb && wb.we) ? wb.sel : '0;
 
-    assign wb_stall = '0;
-    assign wb_dat_r = bram_data_r;
+    assign wb.stall = '0;
+    assign wb.dat_r = bram_data_r;
 
     always_ff @(posedge clk) begin
         if (rst) begin
-            wb_ack <= '0;
+            wb.ack <= '0;
         end else begin
-            wb_ack <= wb_stb;
+            wb.ack <= wb.stb;
         end
     end
 

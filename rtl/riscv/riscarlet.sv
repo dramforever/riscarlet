@@ -1,11 +1,11 @@
 module riscarlet
     import  types::*;
 (
-    input wire  logic       clk,
-    input wire  logic       rst,
+    input   logic       clk,
+    input   logic       rst,
 
-    input wire  word_t      a,
-    output      word_t      b
+    input   word_t      a,
+    output  word_t      b
 );
 
     always_ff @(posedge clk) begin
