@@ -1,7 +1,7 @@
 module stage_fetch
     import types::*;
 #(
-    parameter   integer     CTR_W = 3
+    parameter   integer     CTR_W = 2
 ) (
     input   logic       clk,
     input   logic       rst,
@@ -24,19 +24,20 @@ module stage_fetch
     ctr_t       discard_next;
 
     logic       should_discard;
-    assign should_discard = (discard_next > 0);
+    assign should_discard = (discard > 0);
 
     always_comb begin
         waiting_next = waiting;
         waiting_next += ctr_t'(bus.stb && ! bus.stall);
 
         discard_next = discard;
+
+        waiting_next -= ctr_t'(bus.ack);
+        discard_next -= ctr_t'((discard > 0) && bus.ack);
+
         if (pc_flush) begin
             discard_next = waiting_next;
         end
-
-        waiting_next -= ctr_t'(bus.ack);
-        discard_next -= ctr_t'((discard_next > 0) && bus.ack);
     end
 
     always_ff @(posedge clk) begin
@@ -73,7 +74,7 @@ module stage_fetch
     assign      pc_flush_now = pc_flush || pc_flush_save;
 
     word_t      pc_new_now;
-    assign      pc_new_now = pc_flush ? pc_new_save : pc_new;
+    assign      pc_new_now = pc_flush ? pc_new : pc_new_save;
 
     always_comb begin
         fifo_pop = '0;

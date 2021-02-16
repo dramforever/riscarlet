@@ -107,16 +107,36 @@ int main(int argc, char *argv[]) {
     std::uniform_int_distribution<unsigned> ready_dist(0, 20);
 
     std::deque<IData> reqs;
+    std::deque<IData> expect;
 
-    for (size_t i = 0; i < 100; i ++) {
+    bool flushing = false;
+    unsigned pc = 0x8000'0000;
+
+    for (size_t i = 0; i < 1000; i ++) {
         dut->ready = ready_dist(rng) < 5;
         dut->stall = bool_dist(rng);
+
+        if (dut->stb && ! dut->stall) {
+            std::cout << absl::StreamFormat("[%9d]    Req adr = %08x\n", dut.counter(), dut->adr);
+            reqs.push_back(dut->adr);
+        }
+
+        if (! reqs.empty() && bool_dist(rng)) {
+            dut->ack = 1;
+            dut->dat_r = reqs.front();
+            std::cout << absl::StreamFormat("[%9d]    Ack dat_r = %08x (adr %08x)\n", dut.counter(), dut->dat_r, reqs.front());
+            reqs.pop_front();
+        } else {
+            dut->ack = 0;
+            dut->dat_r = 0;
+        }
 
         if (ready_dist(rng) < 1) {
             dut->pc_flush = 1;
             dut->ready = 1;
             dut->pc_new = num_dist(rng);
             std::cout << absl::StreamFormat("[%9d] !! Flush! %08x\n", dut.counter(), dut->pc_new);
+            pc = dut->pc_new;
         } else {
             dut->pc_flush = 0;
         }
@@ -124,28 +144,19 @@ int main(int argc, char *argv[]) {
         dut->eval();
 
         if (dut->ready && dut->valid) {
-            if (dut->pc_flush)
+            if (dut->pc_flush) {
                 std::cout << absl::StreamFormat("[%9d] == Flush discard  %08x\n", dut.counter(), dut->instr);
-            else
+            } else {
                 std::cout << absl::StreamFormat("[%9d] == Fetch accepted %08x\n", dut.counter(), dut->instr);
-        }
+                std::cout << absl::StreamFormat("[%9d] ==             pc %08x\n", dut.counter(), pc);
 
-        if (dut->stb && ! dut->stall) {
-            std::cout << absl::StreamFormat("[%9d] -> Req adr = %08x\n", dut.counter(), dut->adr);
-            reqs.push_back(dut->adr);
+                if (dut->instr != pc) {
+                    std::cout << "wrong\n";
+                    return 1;
+                }
+                pc += 4;
+            }
         }
-
-        if (! reqs.empty() && bool_dist(rng)) {
-            dut->ack = 1;
-            dut->dat_r = num_dist(rng);
-            std::cout << absl::StreamFormat("[%9d] <- Ack dat_r = %08x (adr %08x)\n", dut.counter(), dut->dat_r, reqs.front());
-            reqs.pop_front();
-        } else {
-            dut->ack = 0;
-            dut->dat_r = 0;
-        }
-
-        // std::cout << absl::StreamFormat("[%9d]    outstanding = %d\n", dut.counter(), outstanding);
 
         dut.tick();
     }
