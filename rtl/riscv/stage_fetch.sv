@@ -36,7 +36,7 @@ module stage_fetch
         discard_next -= ctr_t'((discard > 0) && bus.ack);
 
         if (pc_flush) begin
-            discard_next = waiting_next;
+            discard_next = waiting_next + ctr_t'(bus.stb && bus.stall);
         end
     end
 
@@ -146,7 +146,7 @@ module stage_fetch
         end else begin
             if (pc_flush)
                 pc_flush_save <= '1;
-            else if (! bus.stall)
+            if (! bus.stall)
                 pc_flush_save <= '0;
         end
     end
@@ -160,7 +160,8 @@ module stage_fetch
         if (rst) begin
             bus.stb <= '0;
         end else begin
-            bus.stb <= can_issue && ! should_discard;
+            if (! bus.stall)
+                bus.stb <= can_issue && ! should_discard;
         end
     end
 

@@ -23,19 +23,19 @@ nanoseconds::rep to_ns(
 
 class DUT {
 private:
-    std::unique_ptr<Module> module;
+    std::unique_ptr<Module> m_module;
     std::unique_ptr<VerilatedFstC> trace;
     nanoseconds clock_period;
     vluint64_t m_counter;
 
 public:
     DUT(nanoseconds clock_period):
-        module(std::make_unique<Module>()),
+        m_module(std::make_unique<Module>()),
         trace(),
         clock_period(clock_period),
         m_counter(0) {
-        module->clk = 0;
-        module->rst = 1;
+        m_module->clk = 0;
+        m_module->rst = 1;
     }
 
     vluint64_t counter() {
@@ -49,7 +49,7 @@ public:
     void open_trace(const char *filename) {
         Verilated::traceEverOn(true);
         trace = std::make_unique<VerilatedFstC>();
-        module->trace(trace.get(), 0);
+        m_module->trace(trace.get(), 0);
         trace->open(filename);
     }
 
@@ -59,31 +59,32 @@ public:
         if (trace)
             trace->dump(period * m_counter);
 
-        module->clk = 0;
-        module->eval();
+        m_module->clk = 0;
+        m_module->eval();
 
         if (trace)
             trace->dump(period * m_counter + period / 2);
 
-        module->clk = 1;
-        module->eval();
+        m_module->clk = 1;
+        m_module->eval();
 
         m_counter ++;
     }
 
     void reset() {
-        module->rst = 1;
+        m_module->rst = 1;
         tick();
-        module->rst = 0;
+        tick();
+        m_module->rst = 0;
         tick();
     }
 
     virtual ~DUT() {
-        module->final();
+        m_module->final();
     }
 
     Module* operator->() {
-        return module.get();
+        return m_module.get();
     }
 };
 
@@ -96,12 +97,15 @@ int main(int argc, char *argv[]) {
     DUT dut(clock_period);
 
     Verilated::mkdir("simout");
-    dut.open_trace("simout/dump.fst");
+    // dut.open_trace("simout/dump.fst");
 
     dut.reset();
 
     std::random_device rd;
-    std::mt19937 rng(rd());
+    // unsigned val = 2950291745;
+    unsigned val = rd();
+    std::cout << val << "\n";
+    std::mt19937 rng(val);
     std::uniform_int_distribution<unsigned> bool_dist(0, 1);
     std::uniform_int_distribution<unsigned> num_dist(0, 1<<20);
     std::uniform_int_distribution<unsigned> ready_dist(0, 20);
@@ -112,7 +116,9 @@ int main(int argc, char *argv[]) {
     bool flushing = false;
     unsigned pc = 0x8000'0000;
 
-    for (size_t i = 0; i < 1000; i ++) {
+    int exitstatus = 0;
+
+    for (size_t i = 0; i < 10'000'000; i ++) {
         dut->ready = ready_dist(rng) < 5;
         dut->stall = bool_dist(rng);
 
@@ -152,7 +158,7 @@ int main(int argc, char *argv[]) {
 
                 if (dut->instr != pc) {
                     std::cout << "wrong\n";
-                    return 1;
+                    exitstatus = 1;
                 }
                 pc += 4;
             }
@@ -160,4 +166,6 @@ int main(int argc, char *argv[]) {
 
         dut.tick();
     }
+
+    return exitstatus;
 }
