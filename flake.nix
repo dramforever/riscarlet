@@ -7,12 +7,11 @@
     defaultPackage.x86_64-linux =
       with nixpkgs.legacyPackages.x86_64-linux;
 
-      let sv2v = haskellPackages.callPackage ./nix/sv2v.nix {};
-      in mkShell {
+      mkShell {
         name = "riscarlet-dev";
 
         nativeBuildInputs = [
-          cmake ninja verilator svls sv2v yosys
+          cmake ninja verilator svls yosys
         ];
 
         buildInputs = [
