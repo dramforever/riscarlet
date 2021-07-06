@@ -1,6 +1,8 @@
 `include "riscv/types.sv"
 
-`include "wishbone/wishbone.sv"
+`include "bus/bus.sv"
+`include "bus/bus_req_c.sv"
+`include "bus/bus_rsp_c.sv"
 `include "riscv/pipeline.sv"
 `include "riscv/regport.sv"
 

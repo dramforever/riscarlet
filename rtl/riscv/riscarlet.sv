@@ -4,15 +4,16 @@ module riscarlet
     input   logic       clk,
     input   logic       rst,
 
-    output  logic       stb,
-    input   logic       stall,
-    input   logic       ack,
+    output  logic       req_valid,
+    input   logic       req_ready,
+    input   logic       rsp_valid,
+    output  logic       rsp_ready,
 
-    output  word_t      adr,
-    output  bsel_t      sel,
+    output  word_t      addr,
+    output  bsel_t      bstb,
     output  logic       we,
-    input   word_t      dat_r,
-    output  word_t      dat_w,
+    input   word_t      r_data,
+    output  word_t      w_data,
 
     input   logic       ready,
     output  logic       valid,
@@ -22,17 +23,19 @@ module riscarlet
     input   word_t      pc_new
 );
 
-    wishbone bus_i ();
+    bus_req_c req ();
+    bus_rsp_c rsp ();
 
-    assign stb = bus_i.stb;
-    assign adr = bus_i.adr;
-    assign sel = bus_i.sel;
-    assign we = bus_i.we;
-    assign dat_w = bus_i.dat_w;
+    assign addr = req.data.addr;
+    assign bstb = req.data.bstb;
+    assign we = req.data.we;
+    assign w_data = req.data.w_data;
 
-    assign bus_i.stall = stall;
-    assign bus_i.ack = ack;
-    assign bus_i.dat_r = dat_r;
+    assign req.ready = req_ready;
+    assign req_valid = req.valid;
+    assign rsp_ready = rsp.ready;
+    assign rsp.valid = rsp_valid;
+    assign rsp.data.r_data = r_data;
 
     pipeline pipe_i ();
 
@@ -43,7 +46,8 @@ module riscarlet
     stage_fetch stage_fetch_i (
         .clk, .rst,
         .pc_flush, .pc_new,
-        .bus(bus_i.master),
+        .req(req.up),
+        .rsp(rsp.dn),
         .dn(pipe_i.dn)
     );
 endmodule

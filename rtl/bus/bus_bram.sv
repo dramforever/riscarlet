@@ -1,4 +1,4 @@
-// Wishbone block RAM controller
+// Block RAM controller
 //
 // Requires a block RAM with enable (bram_en) and byte write enable (bram_sel)
 // signals. See single_bram for an example.
@@ -19,24 +19,26 @@ module wb_bram #(
     output  word_t      bram_data_w,
     input   word_t      bram_data_r,
     output  logic       bram_en,
+    output  logic       bram_we,
     output  bsel_t      bram_sel,
 
-    wishbone.slave          wb;
+    bus_req_c.dn       req,
+    bus_rsp_c.up       rsp,
 );
 
-    assign bram_addr = wb.adr[$bits() - 1 : 2];
-    assign bram_data_w = wb.dat_w;
-    assign bram_en = wb.stb;
-    assign bram_sel = (wb.stb && wb.we) ? wb.sel : '0;
+    assign bram_addr = req.data.addr[$bits() - 1 : 2];
+    assign bram_data_w = req.data.w_data;
+    assign bram_en = req.valid && req.ready;
+    assign bram_we = req.data.we;
 
-    assign wb.stall = '0;
+    assign req.ready = rsp.ready;
     assign wb.dat_r = bram_data_r;
 
     always_ff @(posedge clk) begin
         if (rst) begin
-            wb.ack <= '0;
+            rsp.valid <= '0;
         end else begin
-            wb.ack <= wb.stb;
+            rsp.valid <= (req.valid && rsp.ready);
         end
     end
 

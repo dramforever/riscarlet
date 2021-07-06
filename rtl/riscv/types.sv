@@ -29,7 +29,7 @@ package types;
         instr_t in
     );
         return '{
-            opcode:     {>>{in[6:0]}},
+            opcode:     in[6:0],
             rs1:        in[15 +: $bits(rnum_t)],
             rs2:        in[20 +: $bits(rnum_t)],
             rd:         in[7  +: $bits(rnum_t)],

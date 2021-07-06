@@ -1,7 +1,7 @@
 module stage_fetch
     import types::*;
 #(
-    parameter   integer     CTR_W = 2
+    parameter   integer     CTR_W = 3
 ) (
     input   logic       clk,
     input   logic       rst,
@@ -9,164 +9,110 @@ module stage_fetch
     input   logic       pc_flush,
     input   word_t      pc_new,
 
-    wishbone.master     bus,
+    bus_req_c.up       req,
+    bus_rsp_c.dn       rsp,
     pipeline.dn         dn
 );
 
-    localparam  integer     FIFO_CAP = 2 ** CTR_W;
-
     typedef logic [CTR_W - 1 : 0] ctr_t;
 
-    ctr_t       waiting = 'd0;
-    ctr_t       discard = 'd0;
+    ctr_t   pending;
+    ctr_t   to_flush;
 
-    ctr_t       waiting_next;
-    ctr_t       discard_next;
-
-    logic       should_discard;
-    assign should_discard = (discard > 0);
+    ctr_t   pending_next;
+    ctr_t   to_flush_next;
 
     always_comb begin
-        waiting_next = waiting;
-        waiting_next += ctr_t'(bus.stb && ! bus.stall);
+        pending_next = pending;
 
-        discard_next = discard;
+        if (req.valid && req.ready) pending_next += 'd1;
+        if (rsp.valid && rsp.ready) pending_next -= 'd1;
+    end
 
-        waiting_next -= ctr_t'(bus.ack);
-        discard_next -= ctr_t'((discard > 0) && bus.ack);
+    always_comb begin
+        to_flush_next = to_flush;
+        if (to_flush_next > 0 && rsp.valid && rsp.ready)
+            to_flush_next -= 'd1;
+
+        if (pc_flush)
+            to_flush_next = pending_next;
+    end
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            pending <= '0;
+            to_flush <= '0;
+        end else begin
+            pending <= pending_next;
+            to_flush <= to_flush_next;
+        end
+    end
+
+    logic   can_fire;
+    assign can_fire = pending < 3;
+
+    word_t  pc;
+    word_t  pc_next;
+
+    logic  pc_flush_wait;
+    word_t  pc_new_wait;
+    logic  pc_flush_wait_next;
+    word_t  pc_new_wait_next;
+
+    always_comb begin
+        pc_next = pc;
+        pc_flush_wait_next = pc_flush_wait;
+        pc_new_wait_next = pc_new_wait;
 
         if (pc_flush) begin
-            discard_next = waiting_next + ctr_t'(bus.stb && bus.stall);
+            pc_flush_wait_next = '1;
+            pc_new_wait_next = pc_new;
+        end
+
+        if (req.valid && req.ready) begin
+            pc_next = pc_next + 'd4;
+        end
+
+        if (! req.valid || req.ready) begin
+            if (pc_flush_wait_next) begin
+                pc_next = pc_new_wait_next;
+            end
+            pc_flush_wait_next = '0;
         end
     end
 
     always_ff @(posedge clk) begin
         if (rst) begin
-            waiting <= 'd0;
-            discard <= 'd0;
+            pc <= '0;
+            pc_flush_wait <= '0;
+            pc_new_wait <= '0;
         end else begin
-            waiting <= waiting_next;
-            discard <= discard_next;
+            pc <= pc_next;
+            pc_flush_wait <= pc_flush_wait_next;
+            pc_new_wait <= pc_new_wait_next;
         end
     end
 
-    // FIFO has one wasted slot
-    instr_t     fifo  [FIFO_CAP - 1 : 0];
-    ctr_t       fifo_begin = 'd0;
-    ctr_t       fifo_end = 'd0;
+    assign req.data = '{
+        we: '0,
+        addr: pc,
+        w_data: 'x,
+        bstb: '1
+    };
 
-    logic       fifo_push;
-    instr_t     fifo_push_data;
-    logic       fifo_pop;
-
-    ctr_t       fifo_count;
-    assign      fifo_count = fifo_end - fifo_begin;
-
-    logic       can_issue;
-    assign      can_issue = (CTR_W + 2)'(fifo_count) + (CTR_W + 2)'(waiting) < (CTR_W + 2)'(FIFO_CAP - 2);
-
-    word_t      pc = 32'h8000_0000;
-
-    logic       pc_flush_save = '0;
-    word_t      pc_new_save;
-
-    logic       pc_flush_now;
-    assign      pc_flush_now = pc_flush || pc_flush_save;
-
-    word_t      pc_new_now;
-    assign      pc_new_now = pc_flush ? pc_new : pc_new_save;
-
-    always_comb begin
-        fifo_pop = '0;
-        fifo_push = '0;
-        fifo_push_data = '0;
-
-        if (fifo_begin == fifo_end) begin
-            // FIFO is empty
-            dn.valid = bus.ack && ! should_discard;
-            dn.data.instr = bus.dat_r;
-
-            if (bus.ack && ! dn.ready && ! should_discard) begin
-                fifo_push = '1;
-                fifo_push_data = bus.dat_r;
-            end
-        end else begin
-            // FIFO is not empty
-            dn.valid = '1;
-            dn.data.instr = fifo[fifo_begin];
-
-            if (bus.ack) begin
-                fifo_push = '1;
-                fifo_push_data = bus.dat_r;
-            end
-
-            if (dn.ready) begin
-                fifo_pop = '1;
-            end
-        end
-    end
-
-    always_ff @(posedge clk) begin
-        if (rst || pc_flush_now) begin
-            fifo_begin <= 'd0;
-            fifo_end <= 'd0;
-        end else begin
-            if (fifo_pop) begin
-                fifo_begin <= fifo_begin + 'd1;
-            end
-
-            if (fifo_push) begin
-                fifo_end <= fifo_end + 'd1;
-            end
-        end
-    end
-
-    always_ff @(posedge clk) begin
-        if (fifo_push) begin
-            fifo[fifo_end] <= fifo_push_data;
-        end
-    end
+    logic not_in_reset;
 
     always_ff @(posedge clk) begin
         if (rst) begin
-            pc <= 32'h8000_0000;
+            not_in_reset <= '0;
         end else begin
-            if (! bus.stall) begin
-                if (pc_flush_now)
-                    pc <= pc_new_now;
-                else if (bus.stb)
-                    pc <= pc + 'd4;
-            end
+            not_in_reset <= '1;
         end
     end
 
-    always_ff @(posedge clk) begin
-        if (rst) begin
-            pc_flush_save <= '0;
-        end else begin
-            if (pc_flush)
-                pc_flush_save <= '1;
-            if (! bus.stall)
-                pc_flush_save <= '0;
-        end
-    end
+    assign req.valid = not_in_reset && can_fire;
 
-    always_ff @(posedge clk) begin
-        if (pc_flush)
-            pc_new_save <= pc_new;
-    end
-
-    always_ff @(posedge clk) begin
-        if (rst) begin
-            bus.stb <= '0;
-        end else begin
-            if (! bus.stall)
-                bus.stb <= can_issue && ! should_discard;
-        end
-    end
-
-    assign  bus.adr = pc;
-    assign  bus.we = '0;
-    assign  bus.sel = '1;
-    assign  bus.dat_w = '0;
+    assign rsp.ready = (dn.ready || (to_flush > '0));
+    assign dn.data.instr = rsp.data;
+    assign dn.valid = rsp.valid && to_flush == '0;
 endmodule
