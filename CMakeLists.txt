@@ -17,13 +17,3 @@ verilate(Vriscarlet
     ${verilate_args})
 
 target_link_libraries(Vriscarlet PRIVATE absl::strings absl::str_format)
-
-add_executable(Vmultiply sim/multiply.cpp)
-
-verilate(Vmultiply
-    TOP_MODULE multiply
-    PREFIX Vmultiply
-    SOURCES rtl/top/multiply.sv
-    ${verilate_args})
-
-target_link_libraries(Vmultiply PRIVATE absl::strings absl::str_format)
