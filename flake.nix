@@ -1,7 +1,7 @@
 {
   description = "RIScarlet: RISC-V in Scarlet";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.11";
 
   outputs = { self, nixpkgs }: {
     defaultPackage.x86_64-linux =
@@ -11,7 +11,7 @@
         name = "riscarlet-dev";
 
         nativeBuildInputs = [
-          cmake ninja verilator svls yosys
+          cmake ninja verilator yosys haskellPackages.sv2v
         ];
 
         buildInputs = [
