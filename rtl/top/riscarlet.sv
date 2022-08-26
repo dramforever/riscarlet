@@ -1,0 +1,7 @@
+`include "modules/rscl_types.sv"
+`include "modules/rscl_instr.sv"
+`include "modules/rscl_bus.sv"
+`include "modules/rscl_alu.sv"
+`include "modules/rscl_branch.sv"
+`include "modules/rscl_core.sv"
+`include "modules/rscl_top.sv"
